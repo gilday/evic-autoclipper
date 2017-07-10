@@ -1,7 +1,8 @@
 # evic-autoclipper
 
 Script for automatically clipping Harris Teeter E-Vic coupons. Run this script
-on a schedule to help your grocery bill with little effort.
+on a schedule to help your grocery bill with little effort. In no way affiliated
+with Harris Teeter.
 
 The script uses [CasperJS](http://casperjs.org/) to execute the
 `evic-autoclipper.js` script in a PhantomJS browser. The script navigates to
