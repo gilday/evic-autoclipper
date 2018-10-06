@@ -5,6 +5,7 @@ const casper = require('casper').create()
 const debug = casper.cli.has('capture')
 const username = casper.cli.get('username')
 const password = casper.cli.get('password')
+const progress = casper.cli.get('progress')
 
 casper.start('https://www.harristeeter.com/specials/evic-coupons-list', function () {
   casper.viewport(1440, 1080) // viewport must be larger than default accommodate the responsive design
@@ -47,22 +48,36 @@ casper.waitFor(function () { return this.evaluate(isReadyToLoad) }, function () 
 }, onTimeout('waiting for coupons to load'))
 
 // CLIP
+const clipped = []
 casper.then(function clip () {
   const remaining = this.evaluate(countUnclipped)
   if (remaining > 0) {
-    this.echo('clipping another, ' + remaining + ' remaining')
-    this.evaluateOrDie(clipNext)
+    if (progress) {
+      this.echo('clipping, ' + remaining + ' remaining')
+    }
+    const name = this.evaluate(clipNext)
+    if (!name) {
+      this.echo('Error clipping coupon').exit()
+    }
+    clipped.push(name)
     this.waitUntilVisible('#loader-div', function () {
-      this.waitWhileVisible('#loader-div', clip, onTimeout('waiting for clip operation to finish'), null, 40000)
+      this.waitWhileVisible('#loader-div', function () {
+        this.waitUntilVisible('.special-error-dialog', function () {
+          this.echo('Reached coupon limit')
+          this.echo('Coupons').echo(' - ' + clipped.join('\n - '))
+          this.exit()
+        }, clip, 1000)
+      }, onTimeout('waiting for clip operation to finish'), null, 40000)
     }, onTimeout('waiting for clip operation to finish', 15000))
   }
 })
 
+
+
 // REPORT
 casper.then(function () {
   capture('all-clipped.png')
-  var coupons = this.evaluate(getCouponNames)
-  this.echo(' - ' + coupons.join('\n - '))
+  casper.echo('Coupons').echo(' - ' + clipped.join('\n - '))
 })
 
 casper.run()
@@ -77,8 +92,9 @@ function clipAll () {
 }
 
 function clipNext () {
-  return $('.productbox button').filter(function (index, element) { return element.textContent === 'Clip' }).first().click()
-  return true
+  const $btn = $('.productbox button').filter(function (index, element) { return element.textContent === 'Clip' }).first()
+  $btn.click()
+  return $btn.parents('.product_infoBox').find('.product_name').html()
 }
 
 function getCouponNames () {
