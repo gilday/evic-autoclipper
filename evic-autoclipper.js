@@ -53,31 +53,33 @@ casper.then(function clip () {
   const remaining = this.evaluate(countUnclipped)
   if (remaining > 0) {
     if (progress) {
-      this.echo('clipping, ' + remaining + ' remaining')
+      this.echo(remaining + ' coupons remaining, clipping')
     }
     const name = this.evaluate(clipNext)
     if (!name) {
       this.echo('Error clipping coupon').exit()
     }
-    clipped.push(name)
     this.waitUntilVisible('#loader-div', function () {
       this.waitWhileVisible('#loader-div', function () {
         this.waitUntilVisible('.special-error-dialog', function () {
           this.echo('Reached coupon limit')
-          this.echo('Coupons').echo(' - ' + clipped.join('\n - '))
-          this.exit()
-        }, clip, 1000)
+        }, function () {
+          clipped.push(name)
+          clip.bind(this)()
+        }, 1000)
       }, onTimeout('waiting for clip operation to finish'), null, 40000)
     }, onTimeout('waiting for clip operation to finish', 15000))
   }
 })
 
-
-
 // REPORT
 casper.then(function () {
   capture('all-clipped.png')
-  casper.echo('Coupons').echo(' - ' + clipped.join('\n - '))
+  if (clipped.length) {
+    this.echo('Coupons').echo(' - ' + clipped.join('\n - '))
+  } else {
+    this.echo('No coupons clipped')
+  }
 })
 
 casper.run()
